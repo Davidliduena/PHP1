@@ -46,7 +46,26 @@ $aProductos[] = array("nombre" => "Aire Acondicionado Split Inverter Frío/Calor
             <div class="row">
                 <div class="col-12">
                     <table class="table border table-hover">
-                       
+                       <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Marca</th>
+                            <th>Modelo</th>
+                            <th>Stock</th>
+                            <th>Precio</th>
+                            <th>Accion</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                       </tbody>
                     </table>
                 </div>
             </div>
