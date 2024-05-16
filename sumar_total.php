@@ -60,8 +60,7 @@ $aProductos[] = array("nombre" => "Aire Acondicionado Split Inverter Frío/Calor
                        <?php 
                        $sumarTotal = 0;
                             for ($contador=0; $contador < 3; $contador++) { 
-                                # code... no va nada solo de ejemplo
-                            
+                                # code... esto no va nada solo de ejemplo
                             ?>
                         <tr>
                         <td><?php echo $aProductos[$contador]["nombre"];?></td>
@@ -78,7 +77,7 @@ $aProductos[] = array("nombre" => "Aire Acondicionado Split Inverter Frío/Calor
                     </table>
                     <div class="row">
                         <div class="col-12">
-                            <p>La sumatoria de los precios es: <?php echo $sumarTotal ?></p>
+                            <p><b>La sumatoria de los precios es: <?php echo $sumarTotal ?></p>
                         </div>
                        </div>
                 </div>
