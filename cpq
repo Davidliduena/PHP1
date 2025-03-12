@@ -1,0 +1,230 @@
+import re
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
+
+userCPI        = Param.userCPI
+passwordCPI    = Param.passwordCPI
+urlClienteCPQ  = Param.urlClienteCPQ
+urlClienteC4C  = Param.urlClienteC4C
+urlContactoC4C = Param.urlContactoC4C
+direcciones    = Product.GetContainerByName('CNT_DIRECCIONES')
+contactos      = Product.GetContainerByName('CNT_CONTACTOS_NATURALES')
+contactosJuri  = Product.GetContainerByName('CNT_CONTACTOS_JURIDICOS')
+idERP          = ''
+nombreCompleto = Param.nombreCompleto
+nCompletoContacto  = Param.nCompletoContacto
+fechaNacimiento    = Product.Attr('FECHA_NACIMIENTO').GetValue()
+fechaCreacion      = Product.Attr('FECHA_CREACION').GetValue()
+#tipoIdentificacion = Product.Attr('TIPO_IDENTIFICACION').GetValue()
+tipoCliente        = Product.Attr('TIPO_CLIENTE').GetValue()
+identificacion     = Product.Attr('IDENTIFICACION').GetValue()
+identificacionCompleta = Param.identificacionCompleta
+razonSocial        = Product.Attr('RAZON_SOCIAL').GetValue()
+primerNombre       = Product.Attr('PRIMER_NOMBRE').GetValue()
+segundoNombre      = Product.Attr('SEGUNDO_NOMBRE').GetValue()
+primerApellido     = Product.Attr('PRIMER_APELLIDO').GetValue()
+segundoApellido    = Product.Attr('SEGUNDO_APELLIDO').GetValue()
+idGenero           = Param.idGenero
+idOcupacion        = Param.idOcupacion
+idEstadoCivil      = Param.idEstadoCivil
+comprador          = Product.Attr('COMPRADOR').GetValue()
+idTipoConstructora = Param.idTipoConstructora
+PVenta             = Product.Attr('PUNTO_VENTA').GetValue()
+idMedioConoc       = Param.idMedioConoc
+idCanalVenta       = Param.idCanalVenta
+idTipoIdentificacion = Param.idTipoIdentificacion
+tipoIdentificacion = Param.idTipoIdentificacion
+idTipoCliente      = Param.idTipoCliente
+idTipoPersona      = Param.idTipoPersona
+idComprador        = Param.idComprador
+idProteccionDatos  = Param.idProteccionDatos
+idMoneda           = Param.idMoneda
+idPuntoRegistro    = User.GetUserCustomFieldByName('PUNTO_VENTA').Content
+queryPuntoReg      = SqlHelper.GetFirst("SELECT ID_ALMACEN FROM CAT_PUNTOS_VENTA WHERE ID_PUNTO_VENTA = '"+idPuntoRegistro+"'")
+idCentroAlmacen    = queryPuntoReg.ID_ALMACEN
+nombreContactoPrincipal = ''
+telContactoPrincipal = ''
+if PVenta != '':
+    PVenta = Product.Attr('PUNTO_VENTA').SelectedValue.ValueCode
+
+#INSERT datos cliente
+tableInfo = SqlHelper.GetTable("INT_DATOS_CLIENTES")
+tablerow = { "ID_CLIENTE_ERP":"", "ID_CLIENTE_C4C":"", "IDENTIFICACION":identificacionCompleta, "ID_TIPO_IDENTIFICACION":idTipoIdentificacion, "ID_TIPO_CLIENTE":idTipoCliente, "ID_TIPO_PERSONA": idTipoPersona, "PRIMER_NOMBRE":primerNombre, "SEGUNDO_NOMBRE":segundoNombre, "PRIMER_APELLIDO":primerApellido, "SEGUNDO_APELLIDO":segundoApellido, "NOMBRE_COMPLETO":nombreCompleto, "RAZON_SOCIAL":razonSocial, "ID_TIPO_COMPRADOR":idComprador, "ID_TIPO_CONSTRUCTORA":idTipoConstructora, "FECHA_NACIMIENTO":fechaNacimiento, "ID_GENERO":idGenero, "ID_OCUPACION":idOcupacion, "ID_ESTADO_CIVIL":idEstadoCivil, "ID_MONEDA":idMoneda, "PERMITE_MANEJO_DATOS":idProteccionDatos, "ID_PUNTO_DATOS":PVenta, "ORGANIZACION_VENTAS":"ACVN", "SECTOR":"21", "ID_CANAL":idCanalVenta, "ID_PUNTO_REGISTRO":idPuntoRegistro, "ID_CENTRO_ALMACEN":idCentroAlmacen, "FECHA_CREACION":fechaCreacion, "ESTADO": "ACTIVO", "MEDIO_CONOCIMIENTO": idMedioConoc, "CLIENTE_C4C": "" }
+tableInfo.AddRow(tablerow)
+upsertInfo = SqlHelper.Upsert(tableInfo)
+#INSERT direcciones
+for d in direcciones.Rows:
+    idFuncionInterlocutor   = d.GetColumnByName('ID_FUNCION_INTERLOCUTOR').Value
+    idClienteDest   = d.GetColumnByName('ID_CLIENTE_DESTINATARIO').Value
+    if idClienteDest == '-':
+        idClienteDest = idERP
+    idPais          = d.GetColumnByName('ID_PAIS').Value
+    idCalle         = d.GetColumnByName('TIPO_CALLE').Value
+    descrCalle      = d.GetColumnByName('DESCRIPCION_CALLE').Value
+    numExterior     = d.GetColumnByName('NUMERO_EXTERIOR').Value
+    numInterior     = d.GetColumnByName('NUMERO_INTERIOR').Value
+    idIntUndEdif    = d.GetColumnByName('INT_UND_EDIF').Value
+    descrIntUndEdif = d.GetColumnByName('DESCRIPCION_INT_UND_EDIF').Value
+    tipoVivienda    = d.GetColumnByName('TIPO_VIVIENDA').Value
+    descVivienda    = d.GetColumnByName('DESCRIPCION_VIVIENDA').Value
+    conjunto        = d.GetColumnByName('CONJUNTO').Value
+    idDepartamento  = d.GetColumnByName('ID_DEPARTAMENTO').Value
+    idCiudad        = d.GetColumnByName('ID_CIUDAD').Value
+    barrio          = d.GetColumnByName('BARRIO').Value
+    zonaTransporte  = d.GetColumnByName('ZONA_TRANSPORTE').Value
+    direccion       = d.GetColumnByName('DIRECCION').Value
+    codigoPostal    = d.GetColumnByName('CODIGO_POSTAL').Value
+    telefono        = d.GetColumnByName('TELEFONO').Value
+    celular         = d.GetColumnByName('CELULAR').Value
+    correo          = d.GetColumnByName('CORREO').Value
+    fechaDireccion  = d.GetColumnByName('FECHA_EFECTIVA').Value
+    marcaProdiverso = d.GetColumnByName('MARCA_PRODIVERSO').Value
+    fechaEfectiva   = datetime.strptime(fechaDireccion, '%d/%m/%Y').strftime("%m/%d/%Y")
+    tableDirecciones = SqlHelper.GetTable("INT_DIRECCIONES_CLIENTES")
+    if idClienteDest == idERP:
+        identCliente = identificacionCompleta
+    else:
+        queryERPdireccion = SqlHelper.GetFirst("SELECT IDENTIFICACION FROM INT_DATOS_CLIENTES WHERE ID_CLIENTE_ERP = '"+idClienteDest+"'")
+        if queryERPdireccion is None:
+            idClienteDest = idERP
+            identCliente = identificacionCompleta
+        else:
+            identCliente = queryERPdireccion.IDENTIFICACION
+    mProdiverso = '0'
+    if marcaProdiverso == 'SI':
+        mProdiverso = '1'
+    tableDirRow = { "ID_CLIENTE_ERP":"", "IDENTIFICACION":identificacionCompleta, "FUNCION_INTERLOCUTOR":idFuncionInterlocutor, "ID_CLIENTE_DESTINATARIO":identCliente, "ID_ERP_DESTINO":idClienteDest, "ID_PAIS":idPais, "ID_CALLE":idCalle, "DESCRIPCION_CALLE":descrCalle, "NUMERO_EXTERIOR":numExterior, "NUMERO_INTERIOR":numInterior, "ID_INT_UND_EDIF":idIntUndEdif, "DESCRIPCION_INT_UND_EDIF":descrIntUndEdif, "TIPO_VIVIENDA":tipoVivienda, "DESCRIPCION_VIVIENDA":descVivienda, "CONJUNTO":conjunto, "ID_DEPARTAMENTO":idDepartamento, "ID_CIUDAD":idCiudad, "BARRIO":barrio, "ID_ZONA_TRANSPORTE":zonaTransporte, "DIRECCION":direccion, "CODIGO_POSTAL":codigoPostal,  "CORREO":correo, "TELEFONO":telefono, "CELULAR":celular, "FECHA_EFECTIVA":fechaEfectiva, "ESTADO":"ACTIVO", "MARCA_PRODIVERSO":mProdiverso }
+    tableDirecciones.AddRow(tableDirRow)
+    upsertDireccion = SqlHelper.Upsert(tableDirecciones)
+#INSERT Contactos
+if tipoIdentificacion == 'N':
+    for c in contactosJuri.Rows:
+        esPrincipal         = c.GetColumnByName('CONTACTO_PRINCIPAL').Value
+        nombreContacto      = c.GetColumnByName('NOMBRE_CONTACTO').Value
+        telefonoContacto    = c.GetColumnByName('TELEFONO_CONTACTO').Value
+        correoContacto      = c.GetColumnByName('CORREO_CONTACTO').Value
+        tableContactos = SqlHelper.GetTable("INT_CONTACTOS_CLIENTES")
+        tableContacRow = { "ID_CLIENTE_ERP":"", "IDENTIFICACION":identificacionCompleta, "NOMBRE_COMPLETO":nombreContacto, "TELEFONO":telefonoContacto, "CORREO":correoContacto, "ES_PRINCIPAL":esPrincipal, "C4C_OBJECTID":"", "C4C_CUSTOMERID":"", "C4C_CONTACTO_JURIDICO":"" }
+        tableContactos.AddRow(tableContacRow)
+        upsertContacto = SqlHelper.Upsert(tableContactos)
+        if esPrincipal == 'SI':
+            nombreContactoPrincipal = nombreContacto
+            telContactoPrincipal    = telefonoContacto
+            correoContactoPrincipal = correoContacto
+if tipoIdentificacion != 'N':
+    for c in contactos.Rows:
+        esPrincipal         = c.GetColumnByName('CONTACTO_PRINCIPAL').Value
+        nombreContacto      = c.GetColumnByName('NOMBRE_CONTACTO').Value
+        telefonoContacto    = c.GetColumnByName('TELEFONO_CONTACTO').Value
+        tableContactos = SqlHelper.GetTable("INT_CONTACTOS_CLIENTES")
+        tableContacRow = { "ID_CLIENTE_ERP":"", "IDENTIFICACION":identificacion, "NOMBRE_COMPLETO":nombreContacto, "TELEFONO":telefonoContacto, "CORREO":"", "ES_PRINCIPAL":esPrincipal, "C4C_OBJECTID":"", "C4C_CUSTOMERID":"", "C4C_CONTACTO_JURIDICO":"" }
+        tableContactos.AddRow(tableContacRow)
+        upsertContacto = SqlHelper.Upsert(tableContactos)
+        if esPrincipal == 'SI':
+            nombreContactoPrincipal = nombreContacto
+            telContactoPrincipal    = telefonoContacto
+#INSERT Auditoria
+usuario           = User.UserName
+nombreUsuario     = User.Name
+fechaModificacion = fechaCreacion
+tableAuditoria = SqlHelper.GetTable("CAT_AUDITORIA_CLIENTES")
+tableAuditoriaRow = { "ID_CLIENTE_MODIFICADO":identificacionCompleta, "CAMPO_MODIFICADO":"Creación de Cliente", "DATO_ANTERIOR":"", "DATO_FINAL":"", "USERNAME":usuario, "NOMBRE_COMPLETO": nombreUsuario, "FECHA_MODIFICACION":fechaModificacion }
+tableAuditoria.AddRow(tableAuditoriaRow)
+upsertAuditoria = SqlHelper.Upsert(tableAuditoria)
+#Crear Objeto CLIENTE CPQ
+data = '{ "customerCPQ": { "Customers": { "Customer": { "Active": "1", "ExternalId": "'+identificacionCompleta+'", "FirstName": "'+nombreCompleto+'", "LastName": "", "Address1": "'+nCompletoContacto+'", "Company": "'+nombreCompleto+'", "StateAbbrev": "", "CountryAbbrev": "COL" } } } }'
+head = {'Authorization' : RestClient.GetBasicAuthenticationHeader(userCPI, passwordCPI)}
+response = RestClient.Post(urlClienteCPQ, data, head)
+#Crear Cliente Natural CRM
+if tipoIdentificacion != 'N':
+    status = '1'
+    queryDireccionEnvio = SqlHelper.GetFirst("SELECT * FROM INT_DIRECCIONES_CLIENTES WHERE IDENTIFICACION = '"+identificacionCompleta+"' AND FUNCION_INTERLOCUTOR = 'AG'")
+    direccion = re.sub(r"[^a-zA-Z0-9 #-]","",queryDireccionEnvio.DIRECCION)
+    numExt    = re.sub(r"[^a-zA-Z0-9 #-]","",queryDireccionEnvio.NUMERO_EXTERIOR)
+    numInt    = re.sub(r"[^a-zA-Z0-9 #-]","",queryDireccionEnvio.NUMERO_INTERIOR)
+
+    idPais = queryDireccionEnvio.ID_PAIS
+    objectID = ''
+    dataCliente1 = '{ "ns0:Clientes_Naturales": { "Clientes_Row": { "OBJECTID": "'+objectID+'", "TIPO_PERSONA": "'+idTipoCliente+'", "ESTADO": "'+status+'", "PERMITE_MANEJO_DATOS": "'+idProteccionDatos+'", "PRIMER_NOMBRE": "'+primerNombre+'", "SEGUNDO_NOMBRE": "'+segundoNombre+'", "APELLIDO_PATERNO": "'+primerApellido+'", "APELLIDO_MATERNO": "'+segundoApellido+'", "ID_GENERO": "'+idGenero+'", "ID_OCUPACION": "'+idOcupacion+'", "ID_PAIS": "'+idPais+'", "ID_DEPARTAMENTO": "'+queryDireccionEnvio.ID_DEPARTAMENTO+'", "ID_TIPO_CALLE": "'+queryDireccionEnvio.ID_CALLE+'", "DESCRIPCION_CALLE": "'+direccion+'", "ID_CIUDAD": "'+queryDireccionEnvio.ID_CIUDAD+'", "NUMERO_TELEFONO": "'+queryDireccionEnvio.TELEFONO+'", '
+    dataCliente2 = '"NUMERO_CELULAR": "'+queryDireccionEnvio.CELULAR+'", "EMAIL": "'+queryDireccionEnvio.CORREO+'", "ID_TIPO_COMPRADOR": "'+idComprador+'", "IDENTIFICACION": "'+identificacionCompleta+'", "ID_CLIENTE_ERP": "", "TIPO_CONSTRUCTORA": "'+idTipoConstructora+'", "NUMERO_EXTERNO": "'+numExt+'", "NUMERO_INTERNO": "'+numInt+'", "ID_PUNTO_VENTA": "'+idPuntoRegistro+'", "TIPO_CLIENTE": "'+idTipoPersona+'", "NombreContacto": "'+nombreContactoPrincipal+'", "TelefonoContacto": "'+telContactoPrincipal+'", "Contacto": "", "DatosVenta": { "ID_C4C": "", "IDCanal": "'+idCanalVenta+'", "IDPuntoVenta": "'+idPuntoRegistro+'" } } } }'
+    dataClienteCRM = dataCliente1 + dataCliente2
+    Log.Info('CLIENTE NATURAL CPQ - C4C', dataClienteCRM)
+    headClienteCRM = {'Authorization' : RestClient.GetBasicAuthenticationHeader(userCPI, passwordCPI)}
+    responseClienteCRM = RestClient.Post(urlClienteC4C, dataClienteCRM, headClienteCRM)
+    Log.Info('CLIENTE NATURAL C4C - CPQ', responseClienteCRM)
+    x = str(responseClienteCRM).split('"ObjectId": "')
+    y = str(x[1]).split('"')
+    objectID = str(y[0])
+    account  = str(y[4])
+    buscaCliente  = SqlHelper.GetFirst("SELECT CpqTableEntryId FROM INT_DATOS_CLIENTES WHERE IDENTIFICACION = '"+identificacionCompleta+"'")
+    indexDatos    = buscaCliente.CpqTableEntryId
+    tableInfo = SqlHelper.GetTable("INT_DATOS_CLIENTES")
+    tablerow  = { "CpqTableEntryId": indexDatos , "ID_CLIENTE_C4C":objectID, "CLIENTE_C4C":account }
+    tableInfo.AddRow(tablerow)
+    upsertInfo = SqlHelper.Upsert(tableInfo)
+#Crear Cliente Juridico CRM
+if tipoIdentificacion == 'N':
+    status = '1'
+    queryDireccionEnvio = SqlHelper.GetFirst("SELECT * FROM INT_DIRECCIONES_CLIENTES WHERE IDENTIFICACION = '"+identificacionCompleta+"' AND FUNCION_INTERLOCUTOR = 'AG'")
+    idPais = queryDireccionEnvio.ID_PAIS
+    objectID = ''
+    nombreC = ''; apellidoC = '';
+    for c in contactosJuri.Rows:
+        nombreContacto      = c.GetColumnByName('NOMBRE_CONTACTO').Value
+        telefonoContacto    = c.GetColumnByName('TELEFONO_CONTACTO').Value
+        correoContacto      = c.GetColumnByName('CORREO_CONTACTO').Value
+        nombreContacto      = c.GetColumnByName('NOMBRE_CONTACTO').Value.split(' ')
+        tamanio = len(nombreContacto)
+        if tamanio >= 2:
+            nombreC = nombreContacto[0]
+            apellidoC = ''
+            ind = 0
+            for a in nombreContacto:
+                if ind == 0:
+                    ind += 1
+                else:
+                    apellidoC += a + ' '
+        if tamanio == 1:
+            apellidoC = nombreContacto[0]
+        dataContactoCRM = '{ "ns0:Clientes_Naturales": { "Clientes_Row": { "OBJECTID": "", "TIPO_PERSONA": "PR", "ESTADO": "1", "PERMITE_MANEJO_DATOS": "", "PRIMER_NOMBRE": "'+nombreC+'", "SEGUNDO_NOMBRE": "", "APELLIDO_PATERNO": "'+apellidoC+'", "APELLIDO_MATERNO": "", "ID_GENERO": "", "ID_OCUPACION": "", "ID_PAIS": "COL", "ID_DEPARTAMENTO": "", "ID_TIPO_CALLE": "", "DESCRIPCION_CALLE": "", "ID_CIUDAD": "", "NUMERO_TELEFONO": "'+telefonoContacto+'", "NUMERO_CELULAR": "", "EMAIL": "'+correoContacto+'", "ID_TIPO_COMPRADOR": "", "IDENTIFICACION": "", "ID_CLIENTE_ERP": "", "TIPO_CONSTRUCTORA": "", "NUMERO_EXTERNO": "", "NUMERO_INTERNO": "", "ID_PUNTO_VENTA": "'+idPuntoRegistro+'", "TIPO_CLIENTE": "PN", "NombreContacto": "", "TelefonoContacto": "", "Contacto": "X", "DatosVenta": { "ID_C4C": "", "IDCanal": "", "IDPuntoVenta": "" } } } }'
+        Log.Info('CLIENTE NATURAL CPQ - C4C (CONTACTO)', str(dataContactoCRM))
+        headContactoCRM = {'Authorization' : RestClient.GetBasicAuthenticationHeader(userCPI, passwordCPI)}
+        responseContactoCRM = RestClient.Post(urlClienteC4C, dataContactoCRM, headContactoCRM)
+        Log.Info('CLIENTE NATURAL C4C - CPQ (CONTACTO)', str(dataContactoCRM))
+        a = str(responseContactoCRM).split('"ObjectId": "')
+        b = str(a[1]).split('"')
+        objectID = str(b[0])
+        account  = str(b[4])
+        nombreContacto = c.GetColumnByName('NOMBRE_CONTACTO').Value
+        tableInfo = SqlHelper.GetTable("INT_CONTACTOS_CLIENTES")
+        queryIdxContact = SqlHelper.GetFirst("SELECT CpqTableEntryId FROM INT_CONTACTOS_CLIENTES WHERE IDENTIFICACION = '"+identificacionCompleta+"' AND NOMBRE_COMPLETO = '"+nombreContacto+"' AND CORREO = '"+correoContacto+"'")
+        indexContacto = str(queryIdxContact.CpqTableEntryId)
+        tablerow  = { "CpqTableEntryId": indexContacto , "C4C_OBJECTID":objectID, "C4C_CUSTOMERID":account, "C4C_CONTACTO_JURIDICO":"" }
+        tableInfo.AddRow(tablerow)
+        upsertInfo = SqlHelper.Upsert(tableInfo)
+    direccion = re.sub(r"[^a-zA-Z0-9 #-]","",queryDireccionEnvio.DIRECCION)
+    numExt    = re.sub(r"[^a-zA-Z0-9 #-]","",queryDireccionEnvio.NUMERO_EXTERIOR)
+    numInt    = re.sub(r"[^a-zA-Z0-9 #-]","",queryDireccionEnvio.NUMERO_INTERIOR)
+    dataClienteCRM = '{ "ns0:Clientes_Naturales": { "Clientes_Row": { "OBJECTID": "", "TIPO_PERSONA": "'+idTipoCliente+'", "ESTADO": "'+status+'", "PERMITE_MANEJO_DATOS": "'+idProteccionDatos+'", "PRIMER_NOMBRE": "'+razonSocial+'", "SEGUNDO_NOMBRE": "", "APELLIDO_PATERNO": "", "APELLIDO_MATERNO": "", "ID_GENERO": "", "ID_OCUPACION": "", "ID_PAIS": "'+idPais+'", "ID_DEPARTAMENTO": "'+queryDireccionEnvio.ID_DEPARTAMENTO+'", "ID_TIPO_CALLE": "'+queryDireccionEnvio.ID_CALLE+'", "DESCRIPCION_CALLE": "'+direccion+'", "ID_CIUDAD": "'+queryDireccionEnvio.ID_CIUDAD+'", "NUMERO_TELEFONO": "'+queryDireccionEnvio.TELEFONO+'", "NUMERO_CELULAR": "'+queryDireccionEnvio.CELULAR+'", "EMAIL": "'+queryDireccionEnvio.CORREO+'", "ID_TIPO_COMPRADOR": "'+idComprador+'", "IDENTIFICACION": "'+identificacionCompleta+'", "ID_CLIENTE_ERP": "", "TIPO_CONSTRUCTORA": "'+idTipoConstructora+'", "NUMERO_EXTERNO": "'+numExt+'", "NUMERO_INTERNO": "'+numInt+'", "ID_PUNTO_VENTA": "'+idPuntoRegistro+'", "TIPO_CLIENTE": "'+idTipoPersona+'", "NombreContacto": "", "TelefonoContacto": "", "Contacto": "", "DatosVenta": { "ID_C4C": "", "IDCanal": "'+idCanalVenta+'", "IDPuntoVenta": "'+idPuntoRegistro+'" } } } }'
+    Log.Info('CLIENTE JURIDICO CPQ - C4C', str(dataClienteCRM))
+    headClienteCRM = {'Authorization' : RestClient.GetBasicAuthenticationHeader(userCPI, passwordCPI)}
+    responseClienteCRM = RestClient.Post(urlClienteC4C, dataClienteCRM, headClienteCRM)
+    Log.Info('CLIENTE JURIDICO C4C - CPQ', responseClienteCRM)
+    x = str(responseClienteCRM).split('"ObjectId": "')
+    y = str(x[1]).split('"')
+    objectID = str(y[0])
+    account  = str(y[4])
+    buscaCliente  = SqlHelper.GetFirst("SELECT CpqTableEntryId FROM INT_DATOS_CLIENTES WHERE IDENTIFICACION = '"+identificacionCompleta+"'")
+    indexDatos = str(buscaCliente.CpqTableEntryId)
+    tableInfoCont = SqlHelper.GetTable("INT_DATOS_CLIENTES")
+    tablerowCont  = { "CpqTableEntryId": indexDatos , "ID_CLIENTE_C4C":objectID, "CLIENTE_C4C":account }
+    tableInfoCont.AddRow(tablerowCont)
+    upsertInfoCont = SqlHelper.Upsert(tableInfoCont)
+    for c in contactosJuri.Rows:
+        nombreContacto      = c.GetColumnByName('NOMBRE_CONTACTO').Value
+        correoContacto      = c.GetColumnByName('CORREO_CONTACTO').Value
+        queryIdxContact = SqlHelper.GetFirst("SELECT CpqTableEntryId, C4C_CUSTOMERID, C4C_CONTACTO_JURIDICO FROM INT_CONTACTOS_CLIENTES WHERE IDENTIFICACION = '"+identificacionCompleta+"' AND NOMBRE_COMPLETO = '"+nombreContacto+"' AND CORREO = '"+correoContacto+"'")
+        indexContacto  = str(queryIdxContact.CpqTableEntryId)
+        customerID     = queryIdxContact.C4C_CUSTOMERID
+        ScriptExecutor.ExecuteGlobal("GS_CONTACTO_JURIDICO", {'accountID':account, 'customerID':customerID, 'userCPI':userCPI, 'passwordCPI':passwordCPI, 'urlContactoC4C':urlContactoC4C })
